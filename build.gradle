@@ -1,0 +1,52 @@
+plugins {
+    id 'java-library'
+    id 'com.github.sherter.google-java-format' version '0.9'
+    id 'com.diffplug.spotless' version '7.0.2'
+    id 'idea'
+}
+
+group = 'ovh.defrancesco'
+version = '1.0-SNAPSHOT'
+
+spotless {
+    java {
+        importOrder()
+        removeUnusedImports()
+        googleJavaFormat('1.25.2')
+        formatAnnotations()
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Task to build the agent JAR
+tasks.register('agentJar', Jar) {
+    archiveClassifier = 'agent'
+    from sourceSets.main.output
+    include 'ovh/defrancesco/example/MemorySamplerAgent.class'
+    manifest {
+        from('src/main/resources/META-INF/MANIFEST.MF')
+    }
+}
+
+
+// Task to run the application with the agent
+tasks.register('runWithAgent', JavaExec) {
+    dependsOn agentJar
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ovh.defrancesco.example.StartStopExample'
+    jvmArgs = ["-javaagent:${agentJar.archiveFile.get()}"]
+}
+
+
+tasks.register('runExample', JavaExec) {
+    dependsOn agentJar
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ovh.defrancesco.example.ExampleApp'
+    jvmArgs = ["-javaagent:${agentJar.archiveFile.get()}"]
+}
+
+// Make the runWithAgent task the default run task
+defaultTasks 'runWithAgent'
